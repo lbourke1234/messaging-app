@@ -1,27 +1,19 @@
-# Use Maven to build the app and OpenJDK for running it
-FROM maven:3.8.6-openjdk-17 AS build
+# Use a Maven image to build the JAR
+FROM maven:3.9.0-eclipse-temurin-17 AS build
 
-# Set the working directory inside the container
+# Copy the source code into the container
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
 
-# Copy the pom.xml and other necessary files to the container
-COPY pom.xml /app/pom.xml
-COPY src /app/src
-
-# Install dependencies and build the application (this step will generate the JAR)
+# Build the application and package it into a JAR file
 RUN mvn clean package -DskipTests
 
-# Now use the OpenJDK 17 image to run the application
-FROM openjdk:17-jre-slim
+# Use a lightweight JDK image for the runtime
+FROM openjdk:17-jdk-slim
 
-# Set the working directory inside the container
-WORKDIR /app
-
-# Copy the generated JAR file from the build stage into the new container
-COPY --from=build /app/target/your-app-name.jar /app/app.jar
-
-# Expose port 8080 (or the port your app uses)
+# Copy the JAR file from the build stage
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-
-# Command to run the Spring Boot app
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Set the entry point for the application
+ENTRYPOINT ["java", "-Dserver.port=8080", "-jar", "/app.jar"]
